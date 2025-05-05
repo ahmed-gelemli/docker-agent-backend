@@ -1,0 +1,14 @@
+version: "3.8"
+
+services:
+  docker-agent:
+    build: .
+    container_name: docker-agent
+    ports:
+      - "127.0.0.1:9000:9000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    env_file:
+      - .env
+    restart: unless-stopped
+

@@ -1,0 +1,7 @@
+
+fastapi
+uvicorn
+python-dotenv
+docker
+pydantic-settings
+websockets
