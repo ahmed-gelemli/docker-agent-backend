@@ -16,6 +16,8 @@ A lightweight, secure, and extensible backend agent built with **FastAPI** that 
 - **JWT authentication** with token expiration
 - **Rate limiting** to prevent abuse
 - **CORS** configuration
+- **Request tracing** with unique request IDs
+- **Structured logging** (JSON in production)
 - **Production-ready** Docker setup (non-root, health checks)
 
 ---
@@ -40,11 +42,11 @@ A lightweight, secure, and extensible backend agent built with **FastAPI** that 
 
 ### Stats & System
 
-| Method | Endpoint              | Description          | Auth Required |
-|--------|-----------------------|----------------------|---------------|
-| GET    | `/stats/{id}`         | CPU and memory stats | Yes           |
-| GET    | `/version`            | Docker & API version | Yes           |
-| GET    | `/healthz`            | Health check         | No            |
+| Method | Endpoint              | Description                              | Auth Required |
+|--------|-----------------------|------------------------------------------|---------------|
+| GET    | `/stats/{id}`         | CPU, memory, network, I/O stats          | Yes           |
+| GET    | `/version`            | Docker version, API version, OS, arch    | Yes           |
+| GET    | `/healthz`            | Health check with Docker connectivity    | No            |
 
 ### Images
 
@@ -159,7 +161,48 @@ Response:
 # List containers
 curl http://localhost:9000/containers/ \
   -H "Authorization: Bearer YOUR_TOKEN"
+```
 
+Response:
+```json
+{
+  "containers": [
+    {
+      "id": "9a2dd44bdbed",
+      "name": "my-container",
+      "image": "nginx:latest",
+      "status": "running",
+      "state": "running",
+      "created": 1735123456,
+      "ports": []
+    }
+  ],
+  "total": 1
+}
+```
+
+```bash
+# Get container stats
+curl http://localhost:9000/stats/CONTAINER_ID \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+Response:
+```json
+{
+  "container_id": "9a2dd44bdbed",
+  "cpu_percent": 2.5,
+  "memory_usage": 52428800,
+  "memory_limit": 2147483648,
+  "memory_percent": 2.44,
+  "network_rx": 1024000,
+  "network_tx": 512000,
+  "block_read": 0,
+  "block_write": 4096
+}
+```
+
+```bash
 # Start a container
 curl -X POST http://localhost:9000/containers/CONTAINER_ID/start \
   -H "Authorization: Bearer YOUR_TOKEN"
@@ -178,14 +221,16 @@ ws.onmessage = (event) => {
 
 ---
 
-## Security Features
+## Security & Observability
 
 | Feature | Description |
 |---------|-------------|
 | **JWT Auth** | Tokens expire after 30 minutes (configurable) |
 | **Rate Limiting** | Auth: 5/min, Actions: 10/min, Reads: 60/min |
 | **CORS** | Configurable allowed origins |
+| **Request Tracing** | Every response includes `X-Request-ID` and `X-Process-Time` headers |
+| **Structured Logging** | JSON logs in production, colored output in debug mode |
 | **Non-root Container** | Runs as `dockeragent` user |
 | **No Stack Traces** | Errors don't leak internal details |
-| **Health Checks** | Built-in Docker health check |
+| **Health Checks** | Returns Docker daemon connectivity status |
 
