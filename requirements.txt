@@ -1,7 +1,23 @@
+# FastAPI framework
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
 
-fastapi
-uvicorn
-python-dotenv
-docker
-pydantic-settings
-websockets
+# Configuration
+python-dotenv==1.0.1
+pydantic-settings==2.7.1
+
+# Docker SDK
+docker==7.1.0
+
+# WebSocket support
+websockets==14.1
+
+# Security - JWT
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+
+# Rate limiting
+slowapi==0.1.9
+
+# Production WSGI server
+gunicorn==23.0.0

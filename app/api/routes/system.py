@@ -1,13 +1,24 @@
+from fastapi import APIRouter, Depends, Request
 
-from fastapi import APIRouter
 from app.services import docker_service
+from app.api.deps import get_current_user
+from app.core.limiter import read_limit
+from app.schemas.auth import TokenData
 
 router = APIRouter()
 
+
 @router.get("/healthz")
-def health_check():
+async def health_check():
+    """Health check endpoint (no auth required)."""
     return {"status": "ok"}
 
+
 @router.get("/version")
-def version_info():
+@read_limit()
+async def version_info(
+    request: Request,
+    current_user: TokenData = Depends(get_current_user),
+):
+    """Get Docker version info (requires auth)."""
     return docker_service.get_version()
