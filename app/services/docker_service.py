@@ -83,7 +83,7 @@ def list_containers(all: bool = True) -> list[ContainerSummary]:
                 image=c.image.tags[0] if c.image.tags else c.image.short_id,
                 status=c.status,
                 state=c.attrs.get("State", {}).get("Status", "unknown"),
-                created=c.attrs.get("Created", 0),
+                created=_parse_timestamp(c.attrs.get("Created", 0)),
                 ports=ports,
             ))
         except Exception as e:
@@ -196,6 +196,19 @@ def get_container_stats(container_id: str) -> ContainerStats:
     )
 
 
+def _parse_timestamp(value: Any) -> int:
+    """Parse a timestamp value to Unix timestamp integer."""
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str):
+        try:
+            dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            return int(dt.timestamp())
+        except ValueError:
+            return 0
+    return 0
+
+
 def list_images() -> list[ImageSummary]:
     """List all Docker images."""
     client = get_client()
@@ -206,7 +219,7 @@ def list_images() -> list[ImageSummary]:
             id=img.short_id,
             tags=img.tags,
             size=img.attrs.get("Size", 0),
-            created=img.attrs.get("Created", 0),
+            created=_parse_timestamp(img.attrs.get("Created", 0)),
         )
         for img in images
     ]
@@ -273,7 +286,7 @@ async def stream_events() -> Generator[str, None, None]:
 async def stream_stats(container_id: str) -> Generator[str, None, None]:
     """Stream container stats asynchronously with correct calculations."""
     container = get_container(container_id)
-    stats_stream = container.stats(stream=True)
+    stats_stream = container.stats(stream=True, decode=True)
     loop = asyncio.get_event_loop()
 
     logger.debug("stats_stream_started", container_id=container_id)
