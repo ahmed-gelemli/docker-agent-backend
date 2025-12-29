@@ -5,24 +5,53 @@ __pycache__/
 *.so
 .Python
 build/
+develop-eggs/
 dist/
-*.egg-info/
+downloads/
+eggs/
 .eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+*.egg
+*.manifest
+*.spec
+pip-log.txt
+pip-delete-this-directory.txt
+.installed.cfg
+MANIFEST
 
 # Virtual environment
 venv/
 .venv/
 env/
+ENV/
+env.bak/
+venv.bak/
 
 # Environment variables
 .env
+.env.*
 .env.local
 .env.*.local
+*.local
 
 # Testing
 .pytest_cache/
+.tox/
+.nox/
 .coverage
+.coverage.*
 htmlcov/
+.hypothesis/
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
 tests/
 
 # IDE
@@ -30,10 +59,61 @@ tests/
 .vscode/
 *.swp
 *.swo
+*~
+*.sublime-workspace
+*.sublime-project
+.spyderproject
+.spyproject
+.ropeproject
 
-# OS
+# OS - macOS
 .DS_Store
+.DS_Store?
+._*
+.AppleDouble
+.LSOverride
+.Spotlight-V100
+.Trashes
+Icon?
+
+# OS - Windows
 Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+
+# OS - Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
 
 # Logs
 *.log
+logs/
+log/
+
+# mypy / type checking
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Docker
+*.pid
+
+# Misc
+*.bak
+*.tmp
+*.temp
+.cache/
+*.cache
