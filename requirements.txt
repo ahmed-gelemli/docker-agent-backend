@@ -21,3 +21,6 @@ slowapi==0.1.9
 
 # Production WSGI server
 gunicorn==23.0.0
+
+# Structured logging
+structlog==24.4.0

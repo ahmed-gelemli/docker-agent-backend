@@ -1,4 +1,4 @@
-import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,6 +10,8 @@ from jose import JWTError
 from app.api.routes import containers, auth, images, system, stats, realtime
 from app.core.config import settings
 from app.core.limiter import limiter
+from app.core.logging import setup_logging, get_logger
+from app.core.middleware import RequestIDMiddleware
 from app.core.exceptions import (
     DockerAgentException,
     docker_agent_exception_handler,
@@ -19,13 +21,38 @@ from app.core.exceptions import (
     jwt_error_handler,
     generic_exception_handler,
 )
+from app.services import docker_service
 
-# Configure logging
-logging.basicConfig(
-    level=logging.DEBUG if settings.debug else logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
-logger = logging.getLogger(__name__)
+# Initialize structured logging
+setup_logging()
+logger = get_logger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan manager for startup and shutdown."""
+    # Startup
+    logger.info(
+        "application_starting",
+        app_name=settings.app_name,
+        debug=settings.debug,
+        rate_limiting=settings.rate_limit_enabled,
+    )
+
+    # Verify Docker connection on startup
+    try:
+        docker_service.get_client()
+        logger.info("docker_connection_verified")
+    except Exception as e:
+        logger.error("docker_connection_failed", error=str(e))
+
+    yield
+
+    # Shutdown
+    logger.info("application_shutting_down")
+    docker_service.close_client()
+    logger.info("application_stopped")
+
 
 # Create FastAPI app
 app = FastAPI(
@@ -34,7 +61,11 @@ app = FastAPI(
     version="1.0.0",
     docs_url="/docs" if settings.debug else None,
     redoc_url="/redoc" if settings.debug else None,
+    lifespan=lifespan,
 )
+
+# Add request ID middleware (first, so it wraps everything)
+app.add_middleware(RequestIDMiddleware)
 
 # Add rate limiter
 app.state.limiter = limiter
@@ -64,15 +95,3 @@ app.include_router(images.router, prefix="/images", tags=["Images"])
 app.include_router(system.router, tags=["System"])
 app.include_router(stats.router, prefix="/stats", tags=["Stats"])
 app.include_router(realtime.router, tags=["Realtime"])
-
-
-@app.on_event("startup")
-async def startup_event():
-    logger.info(f"{settings.app_name} starting up...")
-    logger.info(f"Debug mode: {settings.debug}")
-    logger.info(f"Rate limiting: {'enabled' if settings.rate_limit_enabled else 'disabled'}")
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    logger.info(f"{settings.app_name} shutting down...")
