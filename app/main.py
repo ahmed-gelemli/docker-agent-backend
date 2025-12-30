@@ -88,10 +88,13 @@ app.add_exception_handler(DockerException, docker_exception_handler)
 app.add_exception_handler(JWTError, jwt_error_handler)
 app.add_exception_handler(Exception, generic_exception_handler)
 
-# Include routers
-app.include_router(auth.router, prefix="/auth", tags=["Auth"])
-app.include_router(containers.router, prefix="/containers", tags=["Containers"])
-app.include_router(images.router, prefix="/images", tags=["Images"])
-app.include_router(system.router, tags=["System"])
-app.include_router(stats.router, prefix="/stats", tags=["Stats"])
-app.include_router(realtime.router, tags=["Realtime"])
+# API version prefix
+API_V1_PREFIX = "/api/v1"
+
+# Include routers with versioned prefix
+app.include_router(auth.router, prefix=f"{API_V1_PREFIX}/auth", tags=["Auth"])
+app.include_router(containers.router, prefix=f"{API_V1_PREFIX}/containers", tags=["Containers"])
+app.include_router(images.router, prefix=f"{API_V1_PREFIX}/images", tags=["Images"])
+app.include_router(system.router, prefix=API_V1_PREFIX, tags=["System"])
+app.include_router(stats.router, prefix=f"{API_V1_PREFIX}/stats", tags=["Stats"])
+app.include_router(realtime.router, prefix=API_V1_PREFIX, tags=["Realtime"])
