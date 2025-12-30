@@ -13,6 +13,7 @@ A lightweight, secure, and extensible backend agent built with **FastAPI** that 
 - Stream live container stats
 - Docker events stream (start/stop/etc)
 - List images
+- **MCP (Model Context Protocol)** support for AI assistants
 - **API versioning** (`/api/v1/`)
 - **JWT authentication** with token expiration
 - **Rate limiting** to prevent abuse
@@ -69,6 +70,30 @@ Real-time streaming with JWT token passed as query parameter.
 | `/api/v1/logs/ws/{id}?token=JWT`        | Stream live logs            |
 | `/api/v1/stats/ws/{id}?token=JWT`       | Stream live CPU/memory      |
 | `/api/v1/events/ws?token=JWT`           | Stream Docker events        |
+
+### MCP (Model Context Protocol)
+
+Enables AI assistants (Claude, Cursor, etc.) to interact with Docker via the MCP protocol.
+
+| Path                  | Description                              | Auth              |
+|-----------------------|------------------------------------------|-------------------|
+| `GET /mcp/sse`        | SSE endpoint for MCP connection          | API Key (Bearer)  |
+| `POST /mcp/messages/` | Handle MCP messages                      | API Key (Bearer)  |
+
+**Available MCP Tools:**
+
+| Tool                  | Description                                      |
+|-----------------------|--------------------------------------------------|
+| `docker_health`       | Get Docker daemon health and system info         |
+| `docker_version`      | Get Docker version information                   |
+| `list_containers`     | List all containers with status and ports        |
+| `get_container`       | Get detailed container info                      |
+| `get_container_logs`  | Get container logs                               |
+| `get_container_stats` | Get container CPU/memory/network stats           |
+| `list_images`         | List all Docker images                           |
+| `start_container`     | Start a stopped container                        |
+| `stop_container`      | Stop a running container                         |
+| `restart_container`   | Restart a container                              |
 
 ---
 
@@ -134,6 +159,11 @@ CORS_ORIGINS=https://your-dashboard.com,https://another-origin.com
 RATE_LIMIT_ENABLED=true
 RATE_LIMIT_REQUESTS=100
 RATE_LIMIT_WINDOW=60
+
+# MCP Configuration
+MCP_ENABLED=true
+MCP_API_KEY=your-mcp-api-key-at-least-16-chars  # Generate with: openssl rand -base64 32
+MCP_DEBUG=false
 
 # Application (optional)
 DEBUG=false
@@ -264,6 +294,67 @@ ws.onmessage = (event) => {
   console.log("Log:", event.data);
 };
 ```
+
+### 4. MCP Connection
+
+Configure your AI assistant (Claude Desktop, Cursor, etc.) with the MCP server URL:
+
+```json
+{
+  "mcpServers": {
+    "docker-agent": {
+      "url": "http://localhost:9000/mcp/sse",
+      "headers": {
+        "Authorization": "Bearer YOUR_MCP_API_KEY"
+      }
+    }
+  }
+}
+```
+
+Or use the API key as a query parameter:
+
+```
+http://localhost:9000/mcp/sse?api_key=YOUR_MCP_API_KEY
+```
+
+---
+
+## MCP Deployment Notes
+
+### ✅ Works With
+
+| Environment                          | Status |
+|--------------------------------------|--------|
+| Single instance deployment           | ✅      |
+| Cloud VMs (EC2, DigitalOcean, etc.)  | ✅      |
+| Kubernetes (1 replica)               | ✅      |
+| Docker Compose (single container)    | ✅      |
+
+### ⚠️ Limitations
+
+| Environment                          | Issue                                        |
+|--------------------------------------|----------------------------------------------|
+| Horizontal scaling (multiple replicas) | SSE sessions are stored in-memory; needs sticky sessions |
+| Serverless (Lambda, Vercel Functions)  | SSE requires long-lived connections          |
+| Some load balancers                    | May timeout idle SSE connections (30-60s)    |
+
+### Workarounds
+
+- **Sticky Sessions**: Configure your load balancer to route the same client to the same instance
+- **Single Replica**: Deploy with `replicas: 1` if horizontal scaling isn't needed
+- **Increase Timeouts**: Configure load balancer idle timeout > expected connection duration
+
+---
+
+## Future TODOs
+
+- [ ] Add `StreamableHTTP` transport for stateless MCP (better scaling support)
+- [ ] Redis-backed session store for multi-instance deployments
+- [ ] MCP tool for `docker exec` commands
+- [ ] MCP tool for pulling images
+- [ ] MCP tool for creating/removing containers
+- [ ] MCP prompts and resources support
 
 ---
 
