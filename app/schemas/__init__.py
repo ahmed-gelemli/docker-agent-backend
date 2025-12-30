@@ -4,10 +4,11 @@ from app.schemas.containers import (
     ContainerListResponse,
     ContainerLogsResponse,
     ContainerActionResponse,
+    ContainerDetail,
 )
 from app.schemas.stats import ContainerStats, ContainerStatsStream
 from app.schemas.images import ImageSummary, ImageListResponse
-from app.schemas.system import HealthResponse, VersionResponse
+from app.schemas.system import HealthResponse, EnhancedHealthResponse, VersionResponse
 
 __all__ = [
     # Auth
@@ -19,6 +20,7 @@ __all__ = [
     "ContainerListResponse",
     "ContainerLogsResponse",
     "ContainerActionResponse",
+    "ContainerDetail",
     # Stats
     "ContainerStats",
     "ContainerStatsStream",
@@ -27,5 +29,6 @@ __all__ = [
     "ImageListResponse",
     # System
     "HealthResponse",
+    "EnhancedHealthResponse",
     "VersionResponse",
 ]
