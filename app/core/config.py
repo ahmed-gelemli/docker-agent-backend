@@ -1,6 +1,6 @@
 from pydantic_settings import BaseSettings
-from pydantic import field_validator
-from typing import List
+from pydantic import field_validator, model_validator
+from typing import List, Self
 import secrets
 
 
@@ -29,6 +29,11 @@ class Settings(BaseSettings):
     app_name: str = "Docker Agent"
     debug: bool = False
 
+    # MCP Configuration
+    mcp_enabled: bool = True
+    mcp_debug: bool = False  # Enable verbose MCP library logs
+    mcp_api_key: str = ""  # API key for MCP authentication (required if mcp_enabled)
+
     @field_validator("cors_origins", mode="before")
     @classmethod
     def parse_cors_origins(cls, v):
@@ -45,6 +50,19 @@ class Settings(BaseSettings):
                 "Generate one with: openssl rand -base64 32"
             )
         return v
+
+    @model_validator(mode="after")
+    def validate_mcp_api_key(self) -> Self:
+        if self.mcp_enabled and not self.mcp_api_key:
+            raise ValueError(
+                "MCP_API_KEY is required when MCP_ENABLED=true. "
+                "Generate one with: openssl rand -base64 32"
+            )
+        if self.mcp_api_key and len(self.mcp_api_key) < 16:
+            raise ValueError(
+                "MCP_API_KEY must be at least 16 characters for security."
+            )
+        return self
 
     class Config:
         env_file = ".env"
