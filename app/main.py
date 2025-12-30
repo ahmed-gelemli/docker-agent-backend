@@ -7,7 +7,7 @@ from slowapi.errors import RateLimitExceeded
 from docker.errors import NotFound, APIError, DockerException
 from jose import JWTError
 
-from app.api.routes import containers, auth, images, system, stats, realtime
+from app.api.routes import containers, auth, images, system, stats, realtime, mcp
 from app.core.config import settings
 from app.core.limiter import limiter
 from app.core.logging import setup_logging, get_logger
@@ -37,6 +37,7 @@ async def lifespan(app: FastAPI):
         app_name=settings.app_name,
         debug=settings.debug,
         rate_limiting=settings.rate_limit_enabled,
+        mcp_enabled=settings.mcp_enabled,
     )
 
     # Verify Docker connection on startup
@@ -98,3 +99,7 @@ app.include_router(images.router, prefix=f"{API_V1_PREFIX}/images", tags=["Image
 app.include_router(system.router, prefix=API_V1_PREFIX, tags=["System"])
 app.include_router(stats.router, prefix=f"{API_V1_PREFIX}/stats", tags=["Stats"])
 app.include_router(realtime.router, prefix=API_V1_PREFIX, tags=["Realtime"])
+
+# MCP (Model Context Protocol) endpoint - no auth required for AI assistants
+if settings.mcp_enabled:
+    app.include_router(mcp.router, prefix="/mcp", tags=["MCP"])

@@ -53,6 +53,14 @@ def setup_logging() -> None:
     logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
     logging.getLogger("docker").setLevel(logging.WARNING)
 
+    # MCP library logging - suppress verbose logs unless mcp_debug is enabled
+    if not settings.mcp_debug:
+        logging.getLogger("mcp").setLevel(logging.WARNING)
+        logging.getLogger("mcp.server").setLevel(logging.WARNING)
+        logging.getLogger("mcp.server.sse").setLevel(logging.WARNING)
+        logging.getLogger("mcp.shared").setLevel(logging.WARNING)
+        logging.getLogger("sse_starlette").setLevel(logging.WARNING)
+
 
 def get_logger(name: str) -> structlog.stdlib.BoundLogger:
     """Get a structured logger instance."""
