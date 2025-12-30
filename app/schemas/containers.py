@@ -58,9 +58,88 @@ class ContainerLogsResponse(BaseModel):
 
 
 class ContainerActionResponse(BaseModel):
-    """Response for container start/stop actions."""
+    """Response for container start/stop/restart actions."""
 
     container_id: str
     status: str
     message: str
+
+
+class ContainerStateDetail(BaseModel):
+    """Detailed container state."""
+
+    status: str
+    running: bool
+    paused: bool
+    restarting: bool
+    pid: int
+    exit_code: int
+    started_at: str
+    finished_at: str
+
+
+class ContainerConfig(BaseModel):
+    """Container configuration."""
+
+    hostname: str
+    user: str
+    env: list[str]
+    cmd: list[str] | None
+    entrypoint: list[str] | None
+    working_dir: str
+    labels: dict[str, str]
+
+
+class ContainerHostConfig(BaseModel):
+    """Container host configuration."""
+
+    memory_limit: int
+    cpu_shares: int
+    restart_policy: dict
+    privileged: bool
+
+
+class ContainerMount(BaseModel):
+    """Container mount information."""
+
+    type: str
+    source: str
+    destination: str
+    mode: str
+    read_only: bool
+
+
+class ContainerNetwork(BaseModel):
+    """Container network information."""
+
+    ip_address: str
+    gateway: str
+    mac_address: str
+
+
+class ContainerPortDetail(BaseModel):
+    """Container port mapping detail."""
+
+    container_port: int
+    host_port: int | None
+    protocol: str
+    host_ip: str
+
+
+class ContainerDetail(BaseModel):
+    """Full container details."""
+
+    id: str
+    short_id: str
+    name: str
+    image: str
+    image_id: str
+    created: int
+    status: str
+    state: ContainerStateDetail
+    config: ContainerConfig
+    host_config: ContainerHostConfig
+    mounts: list[ContainerMount]
+    networks: dict[str, ContainerNetwork]
+    ports: list[ContainerPortDetail]
 

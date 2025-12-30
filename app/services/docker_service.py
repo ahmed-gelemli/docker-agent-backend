@@ -55,6 +55,38 @@ def is_connected() -> bool:
         return False
 
 
+def get_system_info() -> dict:
+    """Get Docker system information for enhanced health check."""
+    try:
+        client = get_client()
+        info = client.info()
+        version = client.version()
+
+        # Count containers
+        containers = client.containers.list(all=True)
+        running = sum(1 for c in containers if c.status == "running")
+        total = len(containers)
+
+        return {
+            "docker_connected": True,
+            "docker_version": version.get("Version", "unknown"),
+            "api_version": version.get("ApiVersion", "unknown"),
+            "os": info.get("OperatingSystem", ""),
+            "arch": info.get("Architecture", ""),
+            "containers_running": running,
+            "containers_total": total,
+            "images_total": info.get("Images", 0),
+            "memory_total": info.get("MemTotal", 0),
+            "cpus": info.get("NCPU", 0),
+        }
+    except Exception as e:
+        logger.error("system_info_error", error=str(e))
+        return {
+            "docker_connected": False,
+            "error": str(e),
+        }
+
+
 def list_containers(all: bool = True) -> list[ContainerSummary]:
     """List all containers with summary information."""
     client = get_client()
@@ -113,6 +145,104 @@ def stop_container(container_id: str) -> None:
     container = get_container(container_id)
     container.stop()
     logger.info("container_stopped", container_id=container_id)
+
+
+def restart_container(container_id: str, timeout: int = 10) -> None:
+    """Restart a container."""
+    container = get_container(container_id)
+    container.restart(timeout=timeout)
+    logger.info("container_restarted", container_id=container_id)
+
+
+def get_container_details(container_id: str) -> dict:
+    """Get detailed information about a container."""
+    container = get_container(container_id)
+    attrs = container.attrs
+
+    # Extract useful information
+    config = attrs.get("Config", {})
+    state = attrs.get("State", {})
+    network_settings = attrs.get("NetworkSettings", {})
+    host_config = attrs.get("HostConfig", {})
+
+    # Parse mounts
+    mounts = []
+    for mount in attrs.get("Mounts", []):
+        mounts.append({
+            "type": mount.get("Type", ""),
+            "source": mount.get("Source", ""),
+            "destination": mount.get("Destination", ""),
+            "mode": mount.get("Mode", ""),
+            "read_only": mount.get("RW", True) is False,
+        })
+
+    # Parse networks
+    networks = {}
+    for name, net_config in (network_settings.get("Networks") or {}).items():
+        networks[name] = {
+            "ip_address": net_config.get("IPAddress", ""),
+            "gateway": net_config.get("Gateway", ""),
+            "mac_address": net_config.get("MacAddress", ""),
+        }
+
+    # Parse ports
+    ports = []
+    for port_str, mappings in (network_settings.get("Ports") or {}).items():
+        container_port = int(port_str.split("/")[0])
+        protocol = port_str.split("/")[1] if "/" in port_str else "tcp"
+        if mappings:
+            for m in mappings:
+                ports.append({
+                    "container_port": container_port,
+                    "host_port": int(m["HostPort"]) if m.get("HostPort") else None,
+                    "protocol": protocol,
+                    "host_ip": m.get("HostIp", ""),
+                })
+        else:
+            ports.append({
+                "container_port": container_port,
+                "host_port": None,
+                "protocol": protocol,
+                "host_ip": "",
+            })
+
+    return {
+        "id": container.id,
+        "short_id": container.short_id,
+        "name": container.name,
+        "image": container.image.tags[0] if container.image.tags else container.image.short_id,
+        "image_id": container.image.id,
+        "created": _parse_timestamp(attrs.get("Created", 0)),
+        "status": container.status,
+        "state": {
+            "status": state.get("Status", ""),
+            "running": state.get("Running", False),
+            "paused": state.get("Paused", False),
+            "restarting": state.get("Restarting", False),
+            "pid": state.get("Pid", 0),
+            "exit_code": state.get("ExitCode", 0),
+            "started_at": state.get("StartedAt", ""),
+            "finished_at": state.get("FinishedAt", ""),
+        },
+        "config": {
+            "hostname": config.get("Hostname", ""),
+            "user": config.get("User", ""),
+            "env": config.get("Env", []),
+            "cmd": config.get("Cmd", []),
+            "entrypoint": config.get("Entrypoint", []),
+            "working_dir": config.get("WorkingDir", ""),
+            "labels": config.get("Labels", {}),
+        },
+        "host_config": {
+            "memory_limit": host_config.get("Memory", 0),
+            "cpu_shares": host_config.get("CpuShares", 0),
+            "restart_policy": host_config.get("RestartPolicy", {}),
+            "privileged": host_config.get("Privileged", False),
+        },
+        "mounts": mounts,
+        "networks": networks,
+        "ports": ports,
+    }
 
 
 def get_logs(container_id: str, tail: int = 100) -> str:
